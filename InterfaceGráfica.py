@@ -6,8 +6,20 @@ from decimal import *
 from datetime import *
 import tkinter as tk
 from tkinter import messagebox
+import random
+import string
+
+def gerar_codigo():
+    # Define os caracteres válidos
+    caracteres_validos = string.ascii_uppercase + string.digits
+
+    # Gera um código aleatório de 8 caracteres
+    codigo = ''.join(random.choice(caracteres_validos) for _ in range(10))
+
+    return codigo
 
 def cadastrar_dados():
+    # chama as variaveis globais
     global formulario
     global codigo_entry
     global data_entry
@@ -16,22 +28,9 @@ def cadastrar_dados():
     global tipo_operacao_var
     global taxa_entry
     
-    codigo_transacao = 'M10A'
-    codigo = codigo_entry.get()
-    data = data_entry.get()
-    quantidade = quantidade_entry.get()
-    valor_unit = valor_entry.get()
-    tipo_operacao = tipo_operacao_var.get()
-    taxa_corretagem = taxa_entry.get()
-    
-    print(codigo_transacao)
-    print(codigo)
-    print(data)
-    print(quantidade)
-    print(valor_entry.get())
-    print(tipo_operacao)
-    print(taxa_corretagem)
-    
+    # Faz as variaveis abaixo receberem os valores das variaveis globais
+    codigo_transacao = gerar_codigo()
+   
     up.uses_netloc.append("postgres")
     conn = psycopg2.connect(database="mnlfnrwe", 
                                 user="mnlfnrwe", 
@@ -39,7 +38,7 @@ def cadastrar_dados():
                                 host="kesavan.db.elephantsql.com", 
                                 port="5432")
     cur = conn.cursor()
-    cur.execute("INSERT INTO investimentos VALUES(%s,%s, %s, %s, %s, %s, %s, %s, %s, %s)", (codigo_transacao, codigo, data, quantidade, valor_entry.get(), taxa_corretagem, tipo_operacao, 100.00, 0.90, 2000.00))
+    cur.execute("INSERT INTO investimentos VALUES(%s,%s, %s, %s, %s, %s, %s, %s, %s, %s)", (codigo_transacao, codigo_entry.get(), data_entry.get(), quantidade_entry.get(), valor_entry.get(), taxa_entry.get(), tipo_operacao_var.get(), 100.00, 0.90, 2000.00))
     
     conn.commit()
     cur.close()
