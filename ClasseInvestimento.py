@@ -11,11 +11,11 @@ class investimentos:
         self.__codigo = codigo
         self.__data = data
         self.__quantidade = quantidade
-        self.__valor_unit = valor_unit #Decimal(valor_unit).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        self.__taxa_corretagem = taxa_corretagem #Decimal(taxa_corretagem).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        self.__imposto = imposto #Decimal(imposto).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        self.__valor_operacao = valor_operacao #Decimal(valor_operacao).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        self.__valor_total = valor_total #Decimal(valor_total).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+        self.__valor_unit = valor_unit 
+        self.__taxa_corretagem = taxa_corretagem 
+        self.__imposto = imposto 
+        self.__valor_operacao = valor_operacao 
+        self.__valor_total = valor_total 
 
     @property
     def codigo_transacao(self):
