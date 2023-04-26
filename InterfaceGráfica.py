@@ -1,3 +1,12 @@
+import urllib.parse as up
+import psycopg2
+from decimal import *
+from datetime import *
+import tkinter as tk
+from tkinter import messagebox
+import random
+import string
+
 def gerar_codigo():
     # Define os caracteres válidos
     caracteres_validos = string.ascii_uppercase + string.digits
