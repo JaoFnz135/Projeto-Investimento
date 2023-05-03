@@ -7,26 +7,25 @@ from tkinter import messagebox
 import random
 import string
 
-def inserirDados():
-    # Conecta com o banco de dados
-    up.uses_netloc.append("postgres")
-    conn = psycopg2.connect(database="mnlfnrwe", 
-                            user="mnlfnrwe", 
-                            password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
-                            host="kesavan.db.elephantsql.com", 
-                            port="5432")
-    # Cria o curso para execusão dos comandos 
-    cur = conn.cursor()
-    # Executa um comando sql
-    valores = 1
-    cur.execute("INSERT INTO investimentos VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)" (valores,))
-    
-    # Confirma a alteração/modificação
-    conn.commit()
-    # Fecha a conexão
-    cur.close()
-    conn.close()
-    
+def salvarDados(self):
+        # Cria a conexão com o banco de dados
+        up.uses_netloc.append("postgres")
+        conn = psycopg2.connect(database="mnlfnrwe", 
+                                user="mnlfnrwe", 
+                                password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                                host="kesavan.db.elephantsql.com", 
+                                port="5432")
+        
+        # Cria um cursor(objeto) para manipular o BD
+        cur = conn.cursor()
+        # O metodo .execute("[Codigo SQL]") manipula o BD
+        cur.execute("INSERT INTO investimentos VALUES(%s,%s, %s, %s, %s, %s, %s, %s, %s, %s)", (self.__codigo_transacao, self.__codigo, self.__data,self.__quantidade, self.__valor_unit, self.__taxa_corretagem, self.__tipo_transacao, self.__valor_operacao, self.__imposto, self.__valor_total))
+        # Confirma as alterações no BD
+        conn.commit()
+        # Encerra a conexão o BD
+        cur.close()
+        conn.close()
+        
 def pesquisarAtivo():
     # global ativo_entry, chama a variável referente ao código
     # atv = ativo_entry.get(), recebe o valor da variável global
@@ -58,7 +57,11 @@ def pesquisarAtivo():
     # Exibe os dados na tabela
     for i in range(len(dados)):
         for j in range(len(dados[i])):
-            dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
+            if j == 2:
+                data = datetime.strftime(dados[i][j], '%d/%m/%Y')
+                dado_label = tk.Label(tabela_janela, text=data, font=("Helvetica", 12))
+            else:
+                dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
             dado_label.grid(row=i+2, column=j, padx=10, pady=5)
             
             
@@ -100,7 +103,11 @@ def pesquisarTransacao():
     # Exibe os dados na tabela
     for i in range(len(dados)):
         for j in range(len(dados[i])):
-            dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
+            if j == 2:
+                data = datetime.strftime(dados[i][j], '%d/%m/%Y')
+                dado_label = tk.Label(tabela_janela, text=data, font=("Helvetica", 12))
+            else:
+                dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
             dado_label.grid(row=i+2, column=j, padx=10, pady=5)
             
             
@@ -141,7 +148,11 @@ def visualizar_historico():
     # Exibe os dados na tabela
     for i in range(len(dados)):
         for j in range(len(dados[i])):
-            dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
+            if j == 2:
+                data = datetime.strftime(dados[i][j], '%d/%m/%Y')
+                dado_label = tk.Label(tabela_janela, text=data, font=("Helvetica", 12))
+            else:
+                dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
             dado_label.grid(row=i+2, column=j, padx=10, pady=5)
             
             
@@ -152,7 +163,7 @@ def visualizar_historico():
     tabela_janela.mainloop()
 
 def main():
-    #pesquisarAtivo()
+    pesquisarAtivo()
     #pesquisarTransacao()
     #visualizar_historico()
     pass
