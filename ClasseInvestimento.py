@@ -1,9 +1,9 @@
 import urllib.parse as up
 import psycopg2
-from decimal import *
+from decimal import Decimal, ROUND_DOWN
 from datetime import *
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, StringVar
 import random
 import string
 
@@ -81,3 +81,61 @@ class investimentos:
         # Encerra a conexão o BD
         cur.close()
         conn.close()
+        
+    def atualizarDados(self):     
+        up.uses_netloc.append("postgres")
+        conn = psycopg2.connect(database="mnlfnrwe", 
+                                user="mnlfnrwe", 
+                                password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                                host="kesavan.db.elephantsql.com", 
+                                port="5432")
+        cur = conn.cursor()
+
+        # Atualiza as informações da transação com base no código da transação
+        cur.execute("UPDATE investimentos SET cod_ativo = %s, dt_transacao = %s, quantidade = %s, valor_unit = %s, taxa_corretagem = %s, tipo_transacao = %s, valor_operacao = %s, imposto = %s, valor_total = %s WHERE cod_transacao = %s",
+                    (self.__codigo, self.__data,self.__quantidade, self.__valor_unit, self.__taxa_corretagem, self.__tipo_transacao, self.__valor_operacao, self.__imposto, self.__valor_total, self.__codigo_transacao,))
+        
+        # Commita as mudanças no banco de dados
+        conn.commit()
+
+        # Encerra a conexão com o banco de dados
+        cur.close()
+        conn.close()
+    
+    def precoMedio(self):
+        up.uses_netloc.append("postgres")
+        conn = psycopg2.connect(database="mnlfnrwe", 
+                                user="mnlfnrwe", 
+                                password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                                host="kesavan.db.elephantsql.com", 
+                                port="5432")
+        cur = conn.cursor()
+        
+        cur.execute("SELECT preco_medio, quantidade_acoes FROM ativo WHERE cod_ativo = %s", (self.codigo,))
+        dados = cur.fetchall()
+        
+        numerador = Decimal(self.valor_total)
+        denominador = Decimal(self.quantidade)
+        
+        if dados and dados[0][0] is not None and dados[0][1] is not None:
+            numerador += Decimal(self.quantidade) * Decimal(dados[0][0]).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+            denominador += Decimal(dados[0][1])
+            cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (dados[0][1], self.quantidade, self.codigo)) 
+        else:
+            cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (0, self.quantidade, self.codigo))     
+            
+        pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+        cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, self.codigo))
+        conn.commit()
+        
+        conn.close()    
+        cur.close()
+        
+    def retorno(self):
+        up.uses_netloc.append("postgres")
+        conn = psycopg2.connect(database="mnlfnrwe", 
+                                user="mnlfnrwe", 
+                                password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                                host="kesavan.db.elephantsql.com", 
+                                port="5432")
+        cur = conn.cursor()
