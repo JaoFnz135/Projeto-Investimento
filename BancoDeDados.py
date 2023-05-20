@@ -161,6 +161,35 @@ def visualizar_historico():
     conn.close()
 
     tabela_janela.mainloop()
+    
+    def precoMedio(self):
+        up.uses_netloc.append("postgres")
+        conn = psycopg2.connect(database="mnlfnrwe", 
+                                user="mnlfnrwe", 
+                                password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                                host="kesavan.db.elephantsql.com", 
+                                port="5432")
+        cur = conn.cursor()
+        
+        cur.execute("SELECT preco_medio, quantidade_acoes FROM ativo WHERE cod_ativo = %s", (self.codigo,))
+        dados = cur.fetchall()
+        
+        numerador = Decimal(self.valor_total)
+        denominador = Decimal(self.quantidade)
+        
+        if dados and dados[0][0] is not None and dados[0][1] is not None:
+            numerador += Decimal(self.quantidade) * Decimal(dados[0][0]).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+            denominador += Decimal(dados[0][1])
+            cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (dados[0][1], self.quantidade, self.codigo)) 
+        else:
+            cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (0, self.quantidade, self.codigo))     
+            
+        pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+        cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, self.codigo))
+        conn.commit()
+        
+        conn.close()    
+        cur.close()
 
 def main():
     pesquisarAtivo()
