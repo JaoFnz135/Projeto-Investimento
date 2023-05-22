@@ -172,11 +172,14 @@ def conectar_bd():
                             port="5432")            
     return conn
 
-def informacao_ativo(cod):
+def informacao_ativo(cod, tp = True):
     cur = conectar_bd().cursor()
     cur.execute("select empresa, cod_ativo, preco_medio from ativo where cod_ativo = %s", (cod,))
     dados = cur.fetchall()
-    return messagebox.showinfo("Cadastro Concluído", f"Empresa: {dados[0][0]}\nCódigo Ativo: {dados[0][1]}\nPreço Médio: {dados[0][2]}")
+    if tp:
+        return messagebox.showinfo("Cadastro Concluído", f"Empresa: {dados[0][0]}\nCódigo Ativo: {dados[0][1]}\nPreço Médio: {dados[0][2]}")
+    else:
+        return messagebox.showinfo("Cadastro Concluído", f"Empresa: {dados[0][0]}\nCódigo Ativo: {dados[0][1]}\nPreço Médio: {dados[0][2]}")
 #    return messagebox.showinfo("Sucesso", f"Código Ativo: {dados[0][0]}\nEmpresa: {dados[0][1]}\nAções Possuídas: {dados[0][2]}\nAções Compradas: {dados[0][3]}\nAções Vendidas: {dados[0][4]}\nPreço Médio: {dados[0][5]}")
 
 def gerar_codigo():
@@ -280,11 +283,14 @@ def abrir_formulario(up):
     # Botão de cadastro
     if up == 'cd':
         cadastrar_button = tk.Button(container, text="Cadastrar", command=cadastrar_dados)
-        cadastrar_button.grid(row=6, columnspan=2)
-    if up == 'up':
+        cadastrar_button.grid(row=6, column=1, padx=(0, 10))
+    elif up == 'up':
         atualizar_btn = tk.Button(container, text="Confirmar atualização", command=atualizar_transacao)
-        atualizar_btn.grid(row=6, columnspan=2)
+        atualizar_btn.grid(row=6, column=1, padx=(0, 10))
 
+    cancelar_btn = tk.Button(container, text='Cancelar', command=lambda: formulario.destroy())
+    cancelar_btn.grid(row=7, column=1, pady=(10, 0))
+    
 def abrir_historico():
     conn = psycopg2.connect(database="mnlfnrwe", 
                             user="mnlfnrwe", 
@@ -327,7 +333,8 @@ def abrir_historico():
     # Encerra a conexão com o banco de dados
     cur.close()
     conn.close()
-
+    fechar_btn = tk.Button(tabela_janela, text='Fechar', command=lambda:tabela_janela.destroy())
+    fechar_btn.place(relx=0.04, rely=0.03, anchor='center')
     tabela_janela.mainloop()
     
 def pesquisarAtivo():
@@ -342,41 +349,59 @@ def pesquisarAtivo():
     
     cur = conn.cursor()
     
-    cur.execute("SELECT * FROM investimentos WHERE cod_ativo = %s ORDER BY dt_transacao ASC", (ativoSearch_var.get(),))
+    cur.execute("SELECT empresa, quantidade_acoes, acoes_compradas, acoes_vendidas, preco_medio FROM ativo WHERE cod_ativo = %s", (ativoSearch_var.get().upper(),))
+    empresa_info = cur.fetchone()
     
+    cur.execute("SELECT * FROM investimentos WHERE cod_ativo = %s ORDER BY dt_transacao ASC", (ativoSearch_var.get().upper(),))
     dados = cur.fetchall()
-    tabela_janela = tk.Toplevel()
-    tabela_janela.geometry('1920x1080')
-    tabela_janela.title("Investimentos")
-    tabela = tk.Label(tabela_janela, text="Investimentos", font=("Helvetica", 16, "bold"))
-    tabela.grid(row=0, column=0, columnspan=6, padx=10, pady=10)
     
-    # Criando as colunas
-    colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Retorno"]
-    for i in range(len(colunas)):
-        coluna_label = tk.Label(tabela_janela, text=colunas[i], font=("Helvetica", 12, "bold"))
-        coluna_label.grid(row=1, column=i, padx=10, pady=10)
+    if empresa_info is not None:
+        tabela_janela = tk.Toplevel()
+        tabela_janela.title("Investimentos")
+        tabela_janela.geometry('1600x800')
 
-    # Exibe os dados na tabela
-    for i in range(len(dados)):
-        for j in range(len(dados[i])):
-            if j == 2: # Quando for o indice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
-                data = datetime.strftime(dados[i][j], '%d/%m/%Y')
-                dado_label = tk.Label(tabela_janela, text=data, font=("Helvetica", 12))
-            else:
-                dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
-            dado_label.grid(row=i+2, column=j, padx=10, pady=5)
-            
-            
-    # Encerra a conexão com o banco de dados
+        # Exibir informações do ativo
+        info_frame = tk.Frame(tabela_janela)
+        info_frame.pack(pady=10)
+
+        info_labels = ["Nome da Empresa:", "Quantidade de Ações Possuídas:", "Ações Compradas:", "Ações Vendidas:", "Preço Médio:"]
+        for i, label_text in enumerate(info_labels):
+            label = tk.Label(info_frame, text=label_text, font=("Helvetica", 12, "bold"))
+            label.grid(row=i, column=0, padx=10, pady=10)
+
+            value_label = tk.Label(info_frame, text=str(empresa_info[i]), font=("Helvetica", 12))
+            value_label.grid(row=i, column=1, padx=10, pady=10)
+
+        # Criar tabela de investimentos
+        tabela_frame = tk.Frame(tabela_janela)
+        tabela_frame.pack(pady=10)
+
+        # Criando as colunas
+        colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Retorno"]
+        for i in range(len(colunas)):
+            coluna_label = tk.Label(tabela_frame, text=colunas[i], font=("Helvetica", 12, "bold"))
+            coluna_label.grid(row=0, column=i, padx=10, pady=10)
+
+        # Exibe os dados na tabela INVESTIMENTOS
+        for i in range(len(dados)):
+            for j in range(len(dados[i])):
+                if j == 2:  # Quando for o índice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
+                    data = datetime.strftime(dados[i][j], '%d/%m/%Y')
+                    dado_label = tk.Label(tabela_frame, text=data, font=("Helvetica", 12))
+                else:
+                    dado_label = tk.Label(tabela_frame, text=str(dados[i][j]), font=("Helvetica", 12))
+                dado_label.grid(row=i+1, column=j, padx=10, pady=5)
+ 
     cur.close()
     conn.close()
-
+    fechar_btn = tk.Button(tabela_janela, text='Fechar', command=lambda:tabela_janela.destroy())
+    fechar_btn.place(relx=0.04, rely=0.05, anchor='center')
     tabela_janela.mainloop()
     
 def abrir_pesquisar_ativo():
     global ativoSearch_var
     pesquisar_ativo_janela = tk.Toplevel(root)
+    pesquisar_ativo_janela.geometry('300x150')
     pesquisar_ativo_janela.title("Pesquisar Ativo")
     
     codigo_label = tk.Label(pesquisar_ativo_janela, text="Ativo:")
@@ -387,7 +412,7 @@ def abrir_pesquisar_ativo():
     ativo_entry.pack(pady=10)
 
     # Adiciona um botão de pesquisa
-    pesquisar_btn = tk.Button(pesquisar_ativo_janela, text="Pesquisar", command=pesquisarAtivo)
+    pesquisar_btn = tk.Button(pesquisar_ativo_janela, text="Pesquisar", command=lambda: (pesquisar_ativo_janela.destroy() ,pesquisarAtivo()))
     pesquisar_btn.pack(pady=10)
     
 def pesquisarTransacao():
@@ -403,31 +428,31 @@ def pesquisarTransacao():
     
     cur = conn.cursor()
     # Não é necessário ordenar, mas num faz mal
-    cur.execute("SELECT * FROM investimentos WHERE cod_transacao = %s ORDER BY dt_transacao ASC", (codigoSearch_var.get(),))
+    cur.execute("SELECT * FROM investimentos WHERE cod_transacao = %s ORDER BY dt_transacao ASC", (codigoSearch_var.get().upper(),))
     
     dados = cur.fetchall()
     tabela_janela = tk.Toplevel()
-    tabela_janela.geometry('1920x1080')
-    tabela_janela.title("Investimentos")
-    tabela = tk.Label(tabela_janela, text="Investimentos", font=("Helvetica", 16, "bold"))
-    tabela.grid(row=0, column=0, columnspan=6, padx=10, pady=10)
-    
+    tabela_janela.geometry('1600x100')
+    tabela_janela.title("Transação")
+    # Criando as colunas
+    tabela_frame = tk.Frame(tabela_janela)
+    tabela_frame.pack(pady=10)
+
     # Criando as colunas
     colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Retorno"]
     for i in range(len(colunas)):
-        coluna_label = tk.Label(tabela_janela, text=colunas[i], font=("Helvetica", 12, "bold"))
-        coluna_label.grid(row=1, column=i, padx=10, pady=10)
+        coluna_label = tk.Label(tabela_frame, text=colunas[i], font=("Helvetica", 12, "bold"))
+        coluna_label.grid(row=0, column=i, padx=10, pady=10)
 
-    # Exibe os dados na tabela
+    # Exibe os dados na tabela INVESTIMENTOS
     for i in range(len(dados)):
         for j in range(len(dados[i])):
-            if j == 2: # Quando for o indice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
+            if j == 2:  # Quando for o índice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
                 data = datetime.strftime(dados[i][j], '%d/%m/%Y')
-                dado_label = tk.Label(tabela_janela, text=data, font=("Helvetica", 12))
+                dado_label = tk.Label(tabela_frame, text=data, font=("Helvetica", 12))
             else:
-                dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
-            dado_label.grid(row=i+2, column=j, padx=10, pady=5)
-            
+                dado_label = tk.Label(tabela_frame, text=str(dados[i][j]), font=("Helvetica", 12))
+            dado_label.grid(row=i+1, column=j, padx=10, pady=5)
             
     # Encerra a conexão com o banco de dados
     cur.close()
@@ -461,6 +486,7 @@ def atualizar_transacao():
     
     formulario.destroy()
     messagebox.showinfo("Sucesso", "Transação atualizada com sucesso!")
+    
 def excluir_transacao():
     global codigoSearch_var
     global pesquisar_transacao_janela
@@ -473,7 +499,7 @@ def excluir_transacao():
     
     cur = conn.cursor()
     
-    cur.execute('DELETE FROM investimentos WHERE cod_transacao = %s', (codigoSearch_var.get(),))
+    cur.execute('DELETE FROM investimentos WHERE cod_transacao = %s', (codigoSearch_var.get().upper(),))
     messagebox.showinfo("Exclusão de transação", "Transação excluída com sucesso!")
 
     conn.commit()
@@ -486,11 +512,12 @@ def abrir_pesquisar_transacao(tp):
     global pesquisar_transacao_janela
     global formulario
     pesquisar_transacao_janela = tk.Toplevel(root)
+    pesquisar_transacao_janela.geometry('300x150')
     pesquisar_transacao_janela.title("Pesquisar Transação")
 
     # Adiciona um label
     codigo_label = tk.Label(pesquisar_transacao_janela, text="Código:")
-    codigo_label.pack(pady=10)
+    codigo_label.pack(pady=12)
 
     # Adiciona uma caixa de texto para inserir o número da transação
     codigoSearch_var = StringVar()  # Cria uma variável do tipo StringVar()
@@ -499,61 +526,63 @@ def abrir_pesquisar_transacao(tp):
 
     # Adiciona um botão de pesquisa
     if tp == 'search':
-        pesquisar_btn = tk.Button(pesquisar_transacao_janela, text="Pesquisar", command=pesquisarTransacao)
+        pesquisar_btn = tk.Button(pesquisar_transacao_janela, text="Pesquisar", command=lambda:(pesquisarTransacao()))
         pesquisar_btn.pack(pady=10)
-    if tp == 'atualizar':
-        atualizar_btn = tk.Button(pesquisar_transacao_janela, text="Atualizar", command=lambda:abrir_formulario('up'))
+    elif tp == 'atualizar':
+        atualizar_btn = tk.Button(pesquisar_transacao_janela, text="Atualizar", command=lambda:(pesquisar_transacao_janela.destroy(),abrir_formulario('up')))
         atualizar_btn.pack(pady=11)
-    else:
-        deletar_btn = tk.Button(pesquisar_transacao_janela, text="Exluir transação", command=excluir_transacao)
+    elif tp == 'Excluir':
+        deletar_btn = tk.Button(pesquisar_transacao_janela, text="Exluir transação", command=lambda:(pesquisar_transacao_janela.destroy(),excluir_transacao()))
         deletar_btn.pack(pady=11)
+        
 
 
-# Abre o menu de exibição com as opções de vosualização dos dados cadastrados
-def fechar(nome):
-    nome.destroy 
-    
+# Abre o menu de exibição com as opções de vIsualização dos dados cadastrados
 def abrir_menuExibicao():
-    visualizar_janela = tk.Toplevel(root)
-    visualizar_janela.geometry('1980x1080')
+    visualizar_janela = tk.Toplevel()
+    visualizar_janela.geometry('1000x800')
     visualizar_janela.title("Visualizar")
 
     # adiciona botão para visualizar histórico
     historico_btn = tk.Button(visualizar_janela, text="Histórico", command=lambda: (visualizar_janela.destroy(), abrir_historico()))
-    historico_btn.pack(pady=10)
+    historico_btn.place(relx=0.5, rely=0.40, anchor='center')
 
     # adiciona botão para pesquisar ativo
-    ativo_btn = tk.Button(visualizar_janela, text="Pesquisar Ativo", command=abrir_pesquisar_ativo)
-    ativo_btn.pack(pady=10)
+    ativo_btn = tk.Button(visualizar_janela, text="Pesquisar Ativo", command=lambda: (abrir_pesquisar_ativo(), visualizar_janela.destroy()))
+    ativo_btn.place(relx=0.5, rely=0.45, anchor='center')
 
     # adiciona botão para pesquisar transação
-    transacao_btn = tk.Button(visualizar_janela, text="Pesquisar Transação", command=lambda:abrir_pesquisar_transacao('search'))
-    transacao_btn.pack(pady=10)
+    transacao_btn = tk.Button(visualizar_janela, text="Pesquisar Transação", command=lambda:(visualizar_janela.destroy(),abrir_pesquisar_transacao('search')))
+    transacao_btn.place(relx=0.5, rely=0.50, anchor='center')
     
+    voltar_btn = tk.Button(visualizar_janela, text='Voltar', command=lambda:visualizar_janela.destroy())
+    voltar_btn.place(relx=0.5, rely=0.55, anchor='center')
     
+    visualizar_janela.mainloop()
 
     
 root = tk.Tk()
 def main():
     # Abre a janela principal do programa
-    root.geometry('1000x900')
+    root.geometry('900x750')
     root.title("Controle de ações")
 
     frame = tk.Frame(root)
     frame.pack(side='top', fill='both', expand=True)
     # Configura o botão cadastrar para abri a função abrir_formulario() 
-    cadastrar_btn = tk.Button(frame, text="Cadastrar", command=lambda:abrir_formulario('cd'))
+    cadastrar_btn = tk.Button(frame, text="Cadastrar", command=lambda:(abrir_formulario('cd')))
     cadastrar_btn.place(relx=0.5, rely=0.35, anchor='center')
 
-    update_btn = tk.Button(frame, text="Editar Transação", command=lambda:abrir_pesquisar_transacao('atualizar'))
+    update_btn = tk.Button(frame, text="Editar Transação", command=lambda:(abrir_pesquisar_transacao('atualizar')))
     update_btn.place(relx=0.5, rely=0.40, anchor='center')
-    
-    deletar_btn = tk.Button(frame, text="Deletar Transação", command=lambda:abrir_pesquisar_transacao('deletar'))
+    deletar_btn = tk.Button(frame, text="Deletar Transação", command=lambda:(abrir_pesquisar_transacao('Excluir')))
     deletar_btn.place(relx=0.5, rely=0.45, anchor='center')
 
-    visualizar_btn = tk.Button(frame, text="Visualizar", command=abrir_menuExibicao)
+    visualizar_btn = tk.Button(frame, text="Visualizar", command=lambda:(abrir_menuExibicao()))
     visualizar_btn.place(relx=0.5, rely=0.5, anchor='center')
-
+    
+    fechar_btn = tk.Button(frame, text='Fechar', command=lambda:root.destroy())
+    fechar_btn.place(relx=0.5, rely=0.55, anchor='center')
     root.mainloop()
     
 if __name__ == '__main__':
