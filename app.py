@@ -79,7 +79,7 @@ class investimentos:
         # Cria um cursor(objeto) para manipular o BD
         cur = conn.cursor()
         # O metodo .execute("[Codigo SQL]") manipula o BD
-        cur.execute("INSERT INTO investimentos VALUES(%s,%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (self.__codigo_transacao, self.__codigo, self.__data,self.__quantidade, self.__valor_unit, self.__taxa_corretagem, self.__tipo_transacao, self.__valor_operacao, self.__imposto, self.__valor_total, self.__retorno))
+        cur.execute("INSERT INTO investimentos VALUES(%s,%s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s)", (self.__codigo_transacao, self.__codigo, self.__data,self.__quantidade, self.__valor_unit, self.__taxa_corretagem, self.__tipo_transacao, self.__valor_operacao, self.__imposto, self.__valor_total, 0.00 ,self.__retorno))
 
         # Confirma as alterações no BD
         conn.commit()
@@ -122,7 +122,7 @@ class investimentos:
         numerador = Decimal(self.valor_total)
         denominador = Decimal(self.quantidade)
         if dados and dados[0][0] is not None and dados[0][1] is not None:
-            numerador = Decimal(numerador)+Decimal(self.__quantidade) * Decimal(dados[0][0]).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+            numerador = Decimal(numerador)+Decimal(dados[0][1]) * Decimal(dados[0][0]).quantize(Decimal('.00'), rounding=ROUND_DOWN)
             denominador += Decimal(dados[0][1])
             cur.execute("UPDATE ativo SET quantidade_acoes = quantidade_acoes + %s WHERE cod_ativo = %s", ( self.__quantidade, self.__codigo)) 
             cur.execute("UPDATE ativo SET acoes_compradas = acoes_compradas + %s WHERE cod_ativo = %s", ( self.__quantidade, self.__codigo)) 
@@ -132,6 +132,7 @@ class investimentos:
             
         pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
         cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, self.codigo))
+        cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, self.codigo_transacao))
         conn.commit()
         
         conn.close()    
@@ -207,7 +208,7 @@ def cadastrar_dados():
     dt_transac = datetime.strptime(data_entry.get(), '%d/%m/%Y').strftime('%Y/%m/%d')
 
     # 
-    inv = investimentos(codigo_transacao, codigo_entry.get(), dt_transac, quantidade_entry.get(), valor_unit, taxa_corretagem, tipo_op)    
+    inv = investimentos(codigo_transacao, codigo_entry.get().upper(), dt_transac, quantidade_entry.get(), valor_unit, taxa_corretagem, tipo_op)    
     
     if tipo_op == 'Compra':
         inv.compra()
@@ -306,14 +307,14 @@ def abrir_historico():
 
     # Cria uma nova janela para exibir a tabela
     tabela_janela = tk.Toplevel()
-    tabela_janela.geometry('1600x800')
-    tabela_janela.title("Histórico de Transações")
+    tabela_janela.geometry('1700x800')
+    tabela_janela.title("Investimentos")
     
     tabela = tk.Label(tabela_janela, text="Investimentos", font=("Helvetica", 16, "bold"))
     tabela.grid(row=0, column=0, columnspan=6, padx=10, pady=10)
 
     # Criando as colunas
-    colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Retorno"]
+    colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", 'Preço Médio',"Retorno"]
     for i in range(len(colunas)):
         coluna_label = tk.Label(tabela_janela, text=colunas[i], font=("Helvetica", 12, "bold"))
         coluna_label.grid(row=1, column=i, padx=10, pady=10)
@@ -358,7 +359,7 @@ def pesquisarAtivo():
     if empresa_info is not None:
         tabela_janela = tk.Toplevel()
         tabela_janela.title("Investimentos")
-        tabela_janela.geometry('1600x800')
+        tabela_janela.geometry('1710x800')
 
         # Exibir informações do ativo
         info_frame = tk.Frame(tabela_janela)
@@ -377,7 +378,7 @@ def pesquisarAtivo():
         tabela_frame.pack(pady=10)
 
         # Criando as colunas
-        colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Retorno"]
+        colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total","Preço Médio", "Retorno"]
         for i in range(len(colunas)):
             coluna_label = tk.Label(tabela_frame, text=colunas[i], font=("Helvetica", 12, "bold"))
             coluna_label.grid(row=0, column=i, padx=10, pady=10)
@@ -432,14 +433,14 @@ def pesquisarTransacao():
     
     dados = cur.fetchall()
     tabela_janela = tk.Toplevel()
-    tabela_janela.geometry('1600x100')
+    tabela_janela.geometry('1710x100')
     tabela_janela.title("Transação")
     # Criando as colunas
     tabela_frame = tk.Frame(tabela_janela)
     tabela_frame.pack(pady=10)
 
     # Criando as colunas
-    colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Retorno"]
+    colunas = ["Cód. Transação", "Código", "Data", "Quantidade", "Valor Unitário", "Taxa de Corretagem", "Tipo Transação", "Valor Operação", "Imposto", "Valor Total", "Preço Médio", "Retorno"]
     for i in range(len(colunas)):
         coluna_label = tk.Label(tabela_frame, text=colunas[i], font=("Helvetica", 12, "bold"))
         coluna_label.grid(row=0, column=i, padx=10, pady=10)
@@ -457,7 +458,8 @@ def pesquisarTransacao():
     # Encerra a conexão com o banco de dados
     cur.close()
     conn.close()
-
+    fechar_btn = tk.Button(tabela_janela, text='Fechar', command=lambda:tabela_janela.destroy())
+    fechar_btn.place(relx=0.02, rely=0.06, anchor='center')
     tabela_janela.mainloop()
 def atualizar_transacao():
     global formulario
@@ -560,7 +562,30 @@ def abrir_menuExibicao():
     
     visualizar_janela.mainloop()
 
+def reiniciar():
+    up.uses_netloc.append("postgres")
+    conn = psycopg2.connect(database="mnlfnrwe", 
+                            user="mnlfnrwe", 
+                            password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                            host="kesavan.db.elephantsql.com", 
+                            port="5432")
+
+    # Cria um cursor(objeto) para manipular o BD
+    cur = conn.cursor()
     
+    cur.execute('''
+    UPDATE ativo
+    Set quantidade_acoes = 0, acoes_vendidas = 0, acoes_compradas = 0, preco_medio = 0
+                ''')
+    
+    cur.execute('DELETE from investimentos')
+    
+    conn.commit()
+    
+    cur.close()
+    conn.close()
+    messagebox.showinfo("Feito", "Tabelas reiniciadas com Sucesso!")
+     
 root = tk.Tk()
 def main():
     # Abre a janela principal do programa
@@ -581,8 +606,11 @@ def main():
     visualizar_btn = tk.Button(frame, text="Visualizar", command=lambda:(abrir_menuExibicao()))
     visualizar_btn.place(relx=0.5, rely=0.5, anchor='center')
     
+    visualizar_btn = tk.Button(frame, text="Reiniciar BD", command=lambda:(reiniciar()))
+    visualizar_btn.place(relx=0.5, rely=0.55, anchor='center')
+    
     fechar_btn = tk.Button(frame, text='Fechar', command=lambda:root.destroy())
-    fechar_btn.place(relx=0.5, rely=0.55, anchor='center')
+    fechar_btn.place(relx=0.5, rely=0.60, anchor='center')
     root.mainloop()
     
 if __name__ == '__main__':
