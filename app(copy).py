@@ -165,7 +165,7 @@ class investimentos:
         cur.close()
         
         
-def calcular_pm():
+def calcular_pm(cod_transacao):
         up.uses_netloc.append("postgres")
         conn = psycopg2.connect(database="mnlfnrwe", 
                                 user="mnlfnrwe", 
@@ -174,7 +174,7 @@ def calcular_pm():
                                 port="5432")
         cur = conn.cursor()
 	
-	cur.execute("SELECT quantidade, valor_total, cod_ativo, cod_transacao FROM investimentos ORDER BY dt_transacao ASC")
+	cur.execute("SELECT quantidade, valor_total, cod_ativo, cod_transacao FROM investimentos where cod_transação = %s", (cod transacao,))
 	dados = cur.fetchall()
 	quantidade_total = 0
 	
