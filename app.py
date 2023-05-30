@@ -4,6 +4,8 @@ from decimal import Decimal, ROUND_DOWN
 from datetime import *
 import tkinter as tk
 from tkinter import messagebox, StringVar, ttk
+# tkcalendar é uma biblioteca, tem que baixar
+from tkcalendar import Calendar, DateEntry
 import random
 import string
 
@@ -182,7 +184,7 @@ def informacao_ativo(cod, tp = True):
     else:
         return messagebox.showinfo("Cadastro Concluído", f"Empresa: {dados[0][0]}\nCódigo Ativo: {dados[0][1]}\nPreço Médio: {dados[0][2]}")
 #    return messagebox.showinfo("Sucesso", f"Código Ativo: {dados[0][0]}\nEmpresa: {dados[0][1]}\nAções Possuídas: {dados[0][2]}\nAções Compradas: {dados[0][3]}\nAções Vendidas: {dados[0][4]}\nPreço Médio: {dados[0][5]}")
-
+    
 def gerar_codigo():
     # Define os caracteres válidos
     caracteres_validos = string.ascii_uppercase + string.digits
@@ -206,7 +208,6 @@ def cadastrar_dados():
     # Cria o código da transação, que também é a chave primária do banco
     codigo_transacao = gerar_codigo()
     dt_transac = datetime.strptime(data_entry.get(), '%d/%m/%Y').strftime('%Y/%m/%d')
-
     # 
     inv = investimentos(codigo_transacao, codigo_entry.get().upper(), dt_transac, quantidade_entry.get(), valor_unit, taxa_corretagem, tipo_op)    
     
@@ -223,7 +224,6 @@ def cadastrar_dados():
         # Feche o formulário
         formulario.destroy()
         informacao_ativo(inv.codigo)
-    
     
 
 # Formulario de Cadastro do investimento
@@ -252,10 +252,10 @@ def abrir_formulario(up):
     tk.Label(container, text="Código:").grid(row=0, column=0)
     codigo_entry = tk.Entry(container, width=10)
     codigo_entry.grid(row=0, column=1)
-
+    
     # Cria o input da data
     tk.Label(container, text="Data:").grid(row=1, column=0)
-    data_entry = tk.Entry(container, width=10)
+    data_entry = DateEntry(container, date_pattern="dd/mm/Y", width=9)
     data_entry.grid(row=1, column=1)
 
     # Cria o input da quantidade
