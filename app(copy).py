@@ -164,7 +164,39 @@ class investimentos:
         conn.close()
         cur.close()
         
-        
+def retorno_geral():
+    conn = conectar_bd()
+    cur = conn.cursor()
+    cur.execute('SELECT retorno FROM ativo')
+    dados = cur.fetchall()
+    retorno = Decimal(0)
+    for i in range(len(dados)):
+        retorno += Decimal(dados[i][0])
+    print(retorno)
+    conn.close()    
+    cur.close()    
+    return retorno
+
+def atualizar_lucro_prejuizo():
+    lucro_prejuizo = retorno_geral()
+    lucro_prejuizo_label.config(text=f"Retorno Total: R$ {lucro_prejuizo:.2f}")
+    #lucro_prejuizo_label.after(1000, atualizar_lucro_prejuizo)
+
+           
+def retorno_ativo(cod_ativo):
+    conn = conectar_bd()
+    cur = conn.cursor()
+    cur.execute('SELECT retorno from investimentos WHERE cod_ativo = %s', (cod_ativo,))
+    dados = cur.fetchall()
+    retorno = Decimal(0).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+    for i in range(len(dados)):
+        retorno += Decimal(dados[i][0])
+    print(retorno)
+    cur.execute('UPDATE ativo SET retorno = %s WHERE cod_ativo = %s', (retorno, cod_ativo))
+    conn.commit()
+    conn.close()    
+    cur.close()
+            
 def calcular_pm(cod_transacao, first=False):
     conn = conectar_bd()
     cur = conn.cursor()
@@ -289,10 +321,8 @@ def cadastrar_dados():
             for j in range(len(dados[i])):
                 if i == 0:
                     pm = calcular_pm(dados[0][0], True)
-
                 else:
                     pm = calcular_pm(dados[i][0])
-                    
         conn = conectar_bd()
         cur = conn.cursor()
         cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, codigo_entry.get()))
@@ -308,6 +338,8 @@ def cadastrar_dados():
         inv.salvarDados()
         # Feche o formulário
         formulario.destroy()
+        retorno_ativo(inv.codigo)
+        atualizar_lucro_prejuizo()
         informacao_ativo(inv.codigo)
     
 
@@ -443,7 +475,7 @@ def pesquisarAtivo():
     
     cur = conn.cursor()
     
-    cur.execute("SELECT empresa, quantidade_acoes, acoes_compradas, acoes_vendidas, preco_medio FROM ativo WHERE cod_ativo = %s", (ativoSearch_var.get().upper(),))
+    cur.execute("SELECT empresa, quantidade_acoes, acoes_compradas, acoes_vendidas, preco_medio, retorno FROM ativo WHERE cod_ativo = %s", (ativoSearch_var.get().upper(),))
     empresa_info = cur.fetchone()
     
     cur.execute("SELECT * FROM investimentos WHERE cod_ativo = %s ORDER BY dt_transacao ASC", (ativoSearch_var.get().upper(),))
@@ -459,7 +491,7 @@ def pesquisarAtivo():
         info_frame = tk.Frame(tabela_janela)
         info_frame.pack(pady=10)
 
-        info_labels = ["Nome da Empresa:", "Quantidade de Ações Possuídas:", "Ações Compradas:", "Ações Vendidas:", "Preço Médio:"]
+        info_labels = ["Nome da Empresa:", "Quantidade de Ações Possuídas:", "Ações Compradas:", "Ações Vendidas:", "Preço Médio:", "Retorno:"]
         for i, label_text in enumerate(info_labels):
             label = tk.Label(info_frame, text=label_text, font=("Helvetica", 12, "bold"))
             label.grid(row=i, column=0, padx=10, pady=10)
@@ -675,7 +707,7 @@ def reiniciar():
     
     cur.execute('''
     UPDATE ativo
-    Set quantidade_acoes = 0, acoes_vendidas = 0, acoes_compradas = 0, preco_medio = 0
+    Set quantidade_acoes = 0, acoes_vendidas = 0, acoes_compradas = 0, preco_medio = 0, retorno = 0
                 ''')
     
     cur.execute('DELETE from investimentos')
@@ -685,7 +717,9 @@ def reiniciar():
     cur.close()
     conn.close()
     messagebox.showinfo("Feito", "Tabelas reiniciadas com Sucesso!")
-     
+             
+
+    
 root = tk.Tk()
 def main():
     # Abre a janela principal do programa
@@ -711,7 +745,15 @@ def main():
     
     fechar_btn = tk.Button(frame, text='Fechar', command=lambda:root.destroy())
     fechar_btn.place(relx=0.5, rely=0.60, anchor='center')
+    
+    global lucro_prejuizo_label
+    lucro_prejuizo_label = tk.Label(frame, text="Retorno Total: R$ 0.0")
+    lucro_prejuizo_label.pack(anchor=tk.NE)
+
+    # Chamada inicial para atualizar o lucro/prejuízo total
+
     root.mainloop()
     
+
 if __name__ == '__main__':
     main()
