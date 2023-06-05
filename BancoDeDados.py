@@ -7,6 +7,15 @@ from tkinter import messagebox
 import random
 import string
 
+def conectar_bd():
+    up.uses_netloc.append("postgres")
+    conn = psycopg2.connect(database="mnlfnrwe", 
+                            user="mnlfnrwe", 
+                            password="RnSYVKvtLjKAF5SqXPJlll0AuNveFDO_", 
+                            host="kesavan.db.elephantsql.com", 
+                            port="5432")            
+    return conn
+
 def salvarDados(self):
         # Cria a conexão com o banco de dados
         up.uses_netloc.append("postgres")
@@ -190,11 +199,27 @@ def visualizar_historico():
         
         conn.close()    
         cur.close()
+        
+def retorno_ativo(cod_ativo):
+    conn = conectar_bd()
+    cur = conn.cursor()
+    cur.execute('SELECT retorno from investimentos WHERE cod_ativo = %s', (cod_ativo,))
+    dados = cur.fetchall()
+    retorno = Decimal(0).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+    for i in range(len(dados)):
+        retorno += Decimal(dados[i][0])
+    print(retorno)
+    conn.close()    
+    cur.close()
+    
+    
+    
 
 def main():
-    pesquisarAtivo()
+    #pesquisarAtivo()
     #pesquisarTransacao()
     #visualizar_historico()
+    retorno_ativo('PETR4')
     pass
     
 if __name__ == '__main__':
