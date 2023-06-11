@@ -1,6 +1,6 @@
 import urllib.parse as up
 import psycopg2
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 from datetime import *
 import tkinter as tk
 from tkinter import messagebox, StringVar, ttk
@@ -197,64 +197,68 @@ def retorno_ativo(cod_ativo):
     conn.close()    
     cur.close()
             
-def calcular_pm(cod_transacao, first=False):
+def calcular_pm(cod_ativo, cod_transacao):
     conn = conectar_bd()
     cur = conn.cursor()
 
-    cur.execute("SELECT quantidade, valor_total, cod_ativo FROM investimentos where cod_transacao = %s", (cod_transacao,))
+    cur.execute("SELECT quantidade, valor_total, cod_transacao, tipo_transacao FROM investimentos where cod_ativo = %s ORDER BY dt_transacao asc", (cod_ativo,))
     dados = cur.fetchall()
-    cur.execute("SELECT preco_medio, quantidade_acoes FROM ativo WHERE cod_ativo = %s", (dados[0][2],))
-    dados2 = cur.fetchall()
-    quantidade_total = 0
+      
+    quantidade_total = Decimal(0)
+    primeira_linha = True
     
-
-
-    numerador = Decimal(dados[0][1]) #valor total
-    print(numerador)
-    denominador = Decimal(dados[0][0]) # quantidade
-    print(denominador)
-    print(dados[0][2])
+    for dado in dados:  
+        numerador = Decimal(dado[1]) #valor totacod_ativo
+        print(f"\nFora: {numerador}")
+        denominador = Decimal(dado[0]) # quantidade
+        quantidade_total += Decimal(dado[0]) # quantidade
+        print(f'Fora: {denominador}')
+        print(f"Fora: {dado[2]}")
+        if dado[3] == 'Compra':
+            if primeira_linha:
+                # Adiciona a quantidade de ações comprada na coluna quantidade_acoes(ações possuidas atualmente) que tem valor 0
+                cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (0, dado[0], cod_ativo))  
+                # Está adicionando a quantidade de ações comprada na coluna acoes_compradas(guarda a quantidade total de ações compradas) que tem valor 0
+                cur.execute("UPDATE ativo SET acoes_compradas = %s + %s WHERE cod_ativo = %s", (0,dado[0], cod_ativo)) 
+                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_UP)
+                print(f"Dentro p1: {pm}")
+                cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, cod_ativo))
+                cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, dado[2]))
+                primeira_linha = False
+            # Caso possua transações anteriores
+            else:
+            #if dados and dados2[0][0] is not None and dados2[0][1] is not None:
+                cur.execute("SELECT preco_medio, quantidade_acoes FROM ativo WHERE cod_ativo = %s", (cod_ativo,))
+                dados2 = cur.fetchall()
+                print(f'Numerador else: {numerador}')
+                print(f'Preço médio: {dados2[0][0]}')
+                print(f'Quantidade de ações: {dados2[0][1]}')
+                numerador = Decimal(numerador) + (Decimal(dados2[0][1]) * Decimal(dados2[0][0])).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+                print(f'quantidade total: {quantidade_total}')
+                print(f'Numerador else: {numerador}')
+                denominador += Decimal(dados2[0][1])
+                print(f'denominador: {denominador}')
+                cur.execute("UPDATE ativo SET quantidade_acoes = quantidade_acoes + %s WHERE cod_ativo = %s", (dado[0], cod_ativo))
+                cur.execute("UPDATE ativo SET acoes_compradas = acoes_compradas + %s WHERE cod_ativo = %s", (dado[0], cod_ativo))
+                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+                print(f"Dentro p2: {pm}")
+                print(f"Dentro p2: {dado[2]}")
+                cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, cod_ativo))
+                cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, dado[2]))
+        else:  # É uma operação de venda
+            cur.execute("SELECT preco_medio FROM ativo WHERE cod_ativo = %s", (cod_ativo,))
+            pmed = cur.fetchone()
+            print(f'Venda: {pmed}')
+            quantidade_total -= denominador  # Reduz a quantidade total de ações
+            print(f'Venda: {quantidade_total}')
+            cur.execute("UPDATE ativo SET quantidade_acoes = quantidade_acoes - %s WHERE cod_ativo = %s", (denominador, cod_ativo))
+            cur.execute("UPDATE ativo SET acoes_vendidas = acoes_vendidas + %s WHERE cod_ativo = %s", (denominador, cod_ativo))
+            cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pmed[0], dado[2]))  # Define o preço médio como o último calculado para operações de venda
         
-    if first == True:
-        # Adiciona a quantidade de ações comprada na coluna quantidade_acoes(ações possuidas atualmente) que tem valor 0
-        cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (0, dados[0][0], dados[0][2]))  
-        # Está adicionando a quantidade de ações comprada na coluna acoes_compradas(guarda a quantidade total de ações compradas) que tem valor 0
-        cur.execute("UPDATE ativo SET acoes_compradas = %s + %s WHERE cod_ativo = %s", (0,dados[0][0], dados[0][2])) 
-        pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        print(pm)
-        cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, dados[0][2]))
-        cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, cod_transacao))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return pm
-    # Caso possua transações anteriores
-    else:
-    #if dados and dados2[0][0] is not None and dados2[0][1] is not None:
-        numerador = Decimal(numerador)+Decimal(dados2[0][1]) * Decimal(dados2[0][0]).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        print(numerador)
-        denominador += Decimal(dados2[0][1]) # denominador(quantidade) += quantidade_total(0)
-        print(denominador)
-        # Está adicionando a quantidade de ações comprada na coluna quantidade_acoes(ações possuidas atualmente)
-        cur.execute("UPDATE ativo SET quantidade_acoes = quantidade_acoes + %s WHERE cod_ativo = %s", (dados[0][0], dados[0][2])) 
-        # Está adicionando a quantidade de ações comprada na coluna acoes_compradas(guarda a quantidade total de ações compradas)
-        cur.execute("UPDATE ativo SET acoes_compradas = acoes_compradas + %s WHERE cod_ativo = %s", (dados[0][0], dados[0][2])) 
-        # Caso não tenha transação anterior
-        pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
-        print(pm)
-        print(dados[0][2])
-        cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, dados[0][2]))
-        cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, cod_transacao))
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        return pm
-
-
-
-
-
+    conn.commit()
+    cur.close()
+    conn.close()
+    
 
 def conectar_bd():
     up.uses_netloc.append("postgres")
@@ -308,28 +312,7 @@ def cadastrar_dados():
     if tipo_op == 'Compra':
         inv.compra()
         inv.salvarDados()
-        conn = conectar_bd()
-        cur = conn.cursor()
-        cur.execute("SELECT cod_transacao FROM investimentos WHERE tipo_transacao = %s and cod_ativo = %s ORDER BY dt_transacao ASC", (inv.tipo_transacao, inv.codigo))
-        print(codigo_entry.get())
-        dados = cur.fetchall()
-        cur.close()
-        conn.close()
-        pm = 0
-        print(dados[0][0])
-        for i in range(len(dados)):
-            for j in range(len(dados[i])):
-                if i == 0:
-                    pm = calcular_pm(dados[0][0], True)
-                else:
-                    pm = calcular_pm(dados[i][0])
-        conn = conectar_bd()
-        cur = conn.cursor()
-        cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, codigo_entry.get()))
-        conn.commit()
-        cur.close()
-        conn.close()                
-
+        calcular_pm(inv.codigo, inv.codigo_transacao)
         formulario.destroy()
         informacao_ativo(inv.codigo)
     else:
@@ -444,14 +427,6 @@ def abrir_historico():
             if j == 2: # Quando for o indice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
                 data = datetime.strftime(dados[i][2], '%d/%m/%Y')
                 dado_label = tk.Label(tabela_janela, text=data, font=("Helvetica", 12))
-            if j == 10:
-                if dados[i][6] == 'Compra': 
-                    if i == 0:
-                        dado_label = tk.Label(tabela_janela, text=calcular_pm(dados[0][0], True), font=("Helvetica", 12))
-                    else:
-                        dado_label = tk.Label(tabela_janela, text=calcular_pm(dados[i][0]), font=("Helvetica", 12))
-                else:
-                    dado_label = tk.Label(tabela_janela, text=0, font=("Helvetica", 12))
             else:
                 dado_label = tk.Label(tabela_janela, text=str(dados[i][j]), font=("Helvetica", 12))
             dado_label.grid(row=i+2, column=j, padx=10, pady=5)
@@ -514,15 +489,7 @@ def pesquisarAtivo():
             for j in range(len(dados[i])):
                 if j == 2:  # Quando for o índice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
                     data = datetime.strftime(dados[i][j], '%d/%m/%Y')
-                    dado_label = tk.Label(tabela_frame, text=data, font=("Helvetica", 12))
-                if j == 10:
-                    if dados[i][6] == 'Compra': 
-                        if i == 0:
-                            dado_label = tk.Label(tabela_frame, text=calcular_pm(dados[0][0], True), font=("Helvetica", 12))
-                        else:
-                            dado_label = tk.Label(tabela_frame, text=calcular_pm(dados[i][0]), font=("Helvetica", 12))
-                    else:
-                        dado_label = tk.Label(tabela_frame, text=0, font=("Helvetica", 12))                        
+                    dado_label = tk.Label(tabela_frame, text=data, font=("Helvetica", 12))                      
                 else:
                     dado_label = tk.Label(tabela_frame, text=str(dados[i][j]), font=("Helvetica", 12))
                 dado_label.grid(row=i+1, column=j, padx=10, pady=5)
@@ -581,7 +548,7 @@ def pesquisarTransacao():
     for i in range(len(dados)):
         for j in range(len(dados[i])):
             if j == 2:  # Quando for o índice da data ele pega o valor vindo do banco de dados e formata no formato dd/mm/aa
-                data = datetime.strftime(dados[i][j], '%d/%m/%Y')
+                data = datetime.strftime(str(dados[i][j]), '%d/%m/%Y')
                 dado_label = tk.Label(tabela_frame, text=data, font=("Helvetica", 12))
             else:
                 dado_label = tk.Label(tabela_frame, text=str(dados[i][j]), font=("Helvetica", 12))
@@ -757,3 +724,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
