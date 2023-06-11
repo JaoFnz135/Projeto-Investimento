@@ -220,7 +220,7 @@ def calcular_pm(cod_ativo, cod_transacao):
                 cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (0, dado[0], cod_ativo))  
                 # Está adicionando a quantidade de ações comprada na coluna acoes_compradas(guarda a quantidade total de ações compradas) que tem valor 0
                 cur.execute("UPDATE ativo SET acoes_compradas = %s + %s WHERE cod_ativo = %s", (0,dado[0], cod_ativo)) 
-                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_UP)
+                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
                 print(f"Dentro p1: {pm}")
                 cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, cod_ativo))
                 cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, dado[2]))
