@@ -197,7 +197,7 @@ def retorno_ativo(cod_ativo):
     conn.close()    
     cur.close()
             
-def calcular_pm(cod_ativo, cod_transacao):
+def calcular_pm(cod_ativo):
     conn = conectar_bd()
     cur = conn.cursor()
 
@@ -220,7 +220,8 @@ def calcular_pm(cod_ativo, cod_transacao):
                 cur.execute("UPDATE ativo SET quantidade_acoes = %s + %s WHERE cod_ativo = %s", (0, dado[0], cod_ativo))  
                 # Está adicionando a quantidade de ações comprada na coluna acoes_compradas(guarda a quantidade total de ações compradas) que tem valor 0
                 cur.execute("UPDATE ativo SET acoes_compradas = %s + %s WHERE cod_ativo = %s", (0,dado[0], cod_ativo)) 
-                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+                #DOWN ou UP?
+                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_UP)
                 print(f"Dentro p1: {pm}")
                 cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, cod_ativo))
                 cur.execute("UPDATE investimentos SET pm = %s WHERE cod_transacao = %s", (pm, dado[2]))
@@ -240,7 +241,8 @@ def calcular_pm(cod_ativo, cod_transacao):
                 print(f'denominador: {denominador}')
                 cur.execute("UPDATE ativo SET quantidade_acoes = quantidade_acoes + %s WHERE cod_ativo = %s", (dado[0], cod_ativo))
                 cur.execute("UPDATE ativo SET acoes_compradas = acoes_compradas + %s WHERE cod_ativo = %s", (dado[0], cod_ativo))
-                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_DOWN)
+                # DOWN ou UP?
+                pm = Decimal(numerador / denominador).quantize(Decimal('.00'), rounding=ROUND_UP)
                 print(f"Dentro p2: {pm}")
                 print(f"Dentro p2: {dado[2]}")
                 cur.execute("UPDATE ativo SET preco_medio = %s WHERE cod_ativo = %s", (pm, cod_ativo))
@@ -312,7 +314,7 @@ def cadastrar_dados():
     if tipo_op == 'Compra':
         inv.compra()
         inv.salvarDados()
-        calcular_pm(inv.codigo, inv.codigo_transacao)
+        calcular_pm(inv.codigo)
         formulario.destroy()
         informacao_ativo(inv.codigo)
     else:
@@ -707,7 +709,7 @@ def main():
     visualizar_btn = tk.Button(frame, text="Visualizar", command=lambda:(abrir_menuExibicao()))
     visualizar_btn.place(relx=0.5, rely=0.5, anchor='center')
     
-    visualizar_btn = tk.Button(frame, text="Reiniciar BD", command=lambda:(reiniciar()))
+    visualizar_btn = tk.Button(frame, text="Reiniciar BD", command=lambda:(reiniciar(), atualizar_lucro_prejuizo()))
     visualizar_btn.place(relx=0.5, rely=0.55, anchor='center')
     
     fechar_btn = tk.Button(frame, text='Fechar', command=lambda:root.destroy())
@@ -716,6 +718,7 @@ def main():
     global lucro_prejuizo_label
     lucro_prejuizo_label = tk.Label(frame, text="Retorno Total: R$ 0.0")
     lucro_prejuizo_label.pack(anchor=tk.NE)
+    atualizar_lucro_prejuizo()
 
     # Chamada inicial para atualizar o lucro/prejuízo total
 
